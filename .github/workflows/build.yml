@@ -9,12 +9,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
     container: ghcr.io/qmk/qmk_cli:latest
+    env:
+      QMK_HOME: ${{ github.workspace }}/qmk_firmware
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - name: Set up pinned QMK source
         run: make setup
       - name: Install QMK CLI dependencies
-        run: python3 -m pip install -r qmk_firmware/requirements.txt
+        run: python3 -m pip install -r "$QMK_HOME/requirements.txt"
       - name: Build firmware and source archive
         run: make package JOBS=2
       - name: Upload firmware and corresponding source
