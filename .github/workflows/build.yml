@@ -1,0 +1,13 @@
+name: Build firmware
+
+on: [push, pull_request, workflow_dispatch]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    uses: qmk/.github/.github/workflows/qmk_userspace_build.yml@01daf5113fa50804558f21cc074ab99ba84ddeaf
+    with:
+      qmk_repo: MechboardsLTD/vial-qmk
+      qmk_ref: 1bf4f3183a8d05ef2ff1010a61740071bfa69139

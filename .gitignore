@@ -1,0 +1,9 @@
+/qmk_firmware/
+/.build/
+/.cache/
+/*.bin
+/*.elf
+/*.hex
+/*.uf2
+/compile_commands.json
+/result
