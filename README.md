@@ -5,6 +5,9 @@ This repository contains QMK keymaps and firmware build targets, using
 GitHub Actions builds the targets in [`qmk.json`](qmk.json) on pushes, pull
 requests, and manual runs. Download the `Firmware` artifact from a successful
 run of [Build firmware](https://github.com/Zariel/qmk-config/actions/workflows/build.yml).
+Each artifact includes a `firmware-source.tar.gz` containing the corresponding
+QMK tree, submodules, keymap, board support, font sources, licenses, and build
+instructions.
 
 ## Keyboards
 
@@ -18,10 +21,17 @@ This board has its own matrix wiring, split transport, displays, and encoder
 support. The upstream `crkbd/r2g` and `mechboards/crkbd/pro` targets describe
 different hardware.
 
-Builds use [Mechboards' firmware fork](https://github.com/MechboardsLTD/vial-qmk/tree/1bf4f3183a8d05ef2ff1010a61740071bfa69139/keyboards/mechboards/crkbd/r2g),
-pinned in [the workflow](.github/workflows/build.yml). Although the source fork
-supports Vial, this keymap builds without VIA or Vial: edit the source and
-rebuild to change the layout.
+Builds use upstream QMK **0.34.7**, pinned to an exact commit in
+[`qmk.mk`](qmk.mk). The board support is [vendored locally](vendor/mechboards/README.md)
+because upstream QMK does not include this R2G revision. The display uses
+[Pixelify Sans](vendor/pixelify-sans/README.md), an OFL-licensed pixel font.
+The keymap builds without VIA or Vial: edit the source and rebuild to change
+the layout.
+
+QMK publishes version tags and merges breaking changes from `develop` into
+`master` on a roughly three-month cadence. Its default setup follows `master`;
+this repository pins a tagged version and commit for repeatable builds. See
+[QMK's release process](https://docs.qmk.fm/breaking_changes).
 
 ## Build locally
 
@@ -34,36 +44,52 @@ nix develop
 The locked flake provides QMK, its ARM and AVR compiler toolchains, Make,
 flashing tools, Git, Python, and `lsusb` on Linux.
 
-Set up the firmware dependency once, using the same revision as CI:
+Set up the upstream firmware dependency once, using the same revision as CI:
 
 ```sh
-qmk setup MechboardsLTD/vial-qmk -b r2g -H "$PWD/qmk_firmware"
-git -C qmk_firmware checkout --detach 1bf4f3183a8d05ef2ff1010a61740071bfa69139
-git -C qmk_firmware submodule update --init --recursive
+make setup
 ```
 
-These Git commands operate on the separate firmware dependency. Use `jj` for
-this configuration repository. The firmware checkout and build outputs are
+This clones upstream QMK, checks out the pinned revision, and initializes its
+submodules. If you have a Mechboards checkout at `qmk_firmware`, move it aside
+before setup. Git commands run inside the separate firmware dependency; use
+`jj` for this configuration repository. The checkout and build outputs are
 ignored by version control.
 
 Build all configured targets from this repository:
 
 ```sh
-export QMK_HOME="$PWD/qmk_firmware"
-qmk userspace-list
-qmk userspace-compile -j 4
+make build
 ```
 
-The output is `mechboards_crkbd_r2g_6col_chris.uf2` in this repository's root.
-To build only the Corne:
+The build checks the QMK revision and copies the vendored board support and
+generated fonts into the firmware tree before compiling. The output is
+`mechboards_crkbd_r2g_6col_chris.uf2` in this repository's root. Set `JOBS` to
+control compiler parallelism, for example `make build JOBS=8`.
+
+To create firmware and corresponding source downloads, as CI does:
 
 ```sh
+make package
+```
+
+The files are written to `dist/`. To rebuild a downloaded source archive,
+extract it, enter its root, run `nix develop path:.`, and run `make build`. The
+archive already contains the complete QMK source and submodules, so skip
+`make setup`.
+Git metadata and build outputs are omitted from source archives; builds from
+these archives use QMK's `SKIP_GIT` option.
+
+For individual QMK commands after preparation:
+
+```sh
+export QMK_HOME="$PWD/qmk_firmware"
+make prepare
+qmk userspace-list
 qmk compile -kb mechboards/crkbd/r2g/6col -km chris -j 4
 ```
 
-QMK detects this userspace from `qmk.json` when you run commands here. To use it
-from other directories, set `qmk config user.overlay_dir="$PWD"` from this
-repository.
+QMK detects this userspace from `qmk.json` when you run commands here.
 
 ## Flash the Corne
 
@@ -79,8 +105,9 @@ is detected by the board's hardware pin.
 5. Check keys on both halves, the NAV/SYM/FN layers, one-shot modifiers, RGB,
    displays, and any fitted encoders.
 
-You can also run `qmk flash -kb mechboards/crkbd/r2g/6col -km chris` and put
-the connected half into bootloader mode when prompted.
+After `make prepare`, you can also set `QMK_HOME` as above, run
+`qmk flash -kb mechboards/crkbd/r2g/6col -km chris`, and put the connected half
+into bootloader mode when prompted.
 
 ## Layout
 
@@ -144,12 +171,31 @@ keycodes.
 Add a keymap under `keyboards/<target>/keymaps/<name>/`, then register it with:
 
 ```sh
+export QMK_HOME="$PWD/qmk_firmware"
 qmk userspace-add -kb <target> -km <name>
 ```
 
 CI and `qmk userspace-compile` both read the resulting `qmk.json` target list.
 
-To update the development tools, run `nix flake update nixpkgs`. To update the
-firmware source, change `qmk_ref` in the workflow, check out that same revision
-in the local firmware dependency, and update its submodules. Build all targets
-before accepting either update.
+To update the development tools, run `nix flake update nixpkgs`. To update QMK,
+change the version and commit in `qmk.mk`, then run `make setup` and
+`make package`. Local and CI builds share this pin and build procedure. Check
+the QMK changelog and verify the resulting firmware on the keyboard before
+accepting an update.
+
+## Licensing
+
+Original configuration, build scripts, and documentation in this repository
+are covered by the [MIT license](LICENSE). The Mechboards board support and
+local adaptations under `vendor/mechboards/` are covered by
+[GPLv2](LICENSES/GPL-2.0.txt), with the option of later versions where their
+SPDX headers specify `GPL-2.0-or-later`. Their original notices are retained.
+Pixelify Sans font data is covered by its
+[SIL Open Font License 1.1](vendor/pixelify-sans/OFL.txt). QMK's generator
+licenses the generated C wrappers under GPL-2.0-or-later while the font data
+retains its original license.
+
+The combined QMK firmware is distributed under GPLv2, with the applicable
+third-party notices and corresponding source included in the `Firmware`
+artifact. The MIT license does not replace the licenses of vendored code,
+fonts, or QMK's dependencies.
