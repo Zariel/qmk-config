@@ -88,28 +88,56 @@ the connected half into bootloader mode when prompted.
 editable layout, arranged in physical order: three rows across both halves,
 six thumbs, then the two encoder presses.
 
-The initial layout is transcribed from [`backups/corne.vil`](backups/corne.vil),
-copied from `../corne.vil`. **The export still needs to be checked against the
-live keyboard in Vial.** The TOTEM keymap in `../zmk-config` is a related layout
-with later changes; this import preserves the Corne export instead.
+The base layer keeps the dedicated Tab, one-shot Control, Pipe, Quote, and
+Escape bindings from [`backups/corne.vil`](backups/corne.vil). NAV remains a
+hold-only thumb key. The archive is an unmodified copy of `../corne.vil` and
+still needs to be checked against the live keyboard in Vial.
+
+The other layers incorporate the improvements from the TOTEM keymap in
+`../zmk-config`. The Corne retains all 42 keys and its RGB controls.
 
 | Layer | Access | Contents |
 | --- | --- | --- |
 | BASE | Default | QWERTY, one-shot Ctrl/Shift/GUI, six thumb keys |
 | NAV | Hold the left middle thumb | Numbers, one-shot modifiers, arrows, navigation, Caps Word, Alt shortcuts |
 | SYM | Hold the right middle thumb | Numbers, symbols, Shift/equals mod-tap |
-| FN | Hold NAV then the right middle thumb, or SYM then the left middle thumb | F1–F12, RGB controls, Print Screen, Ctrl+Shift+GUI |
+| FN | Hold NAV and SYM together, in either order | F1–F12, RGB, media, brightness, screenshots, bootloader, reset |
+
+NAV's left home row provides one-shot Control, Alt, GUI, and Shift on A, S, D,
+and F, followed by Caps Word on G. Arrows follow H/J/K/L ordering. The right
+outer thumb falls through to dedicated Backspace.
+
+On SYM, Grave is on G and Quote is on the Semicolon position. The left outer
+thumb falls through to one-shot GUI, keeping Command/Super shortcuts available.
+One-shot Shift remains on the outer-left bottom key, and Equal still acts as
+Shift while held.
+
+FN is active only while both NAV and SYM are held. Releasing either thumb
+returns to the remaining layer; releasing both returns to BASE. Its bindings
+are arranged in physical order below. `▽` is transparent, and `—` is disabled.
+
+```text
+RGB toggle   F1       F2       F3       F4       F5          F6       F7       F8       F9       F10       —
+RGB next    F11      F12      Hue+     Sat+     Val+        Prev     Vol-     Play     Vol+      Next      —
+Boot        Hue-     Sat-     Val-      —        —          Mute   Bright-  Bright+   Print    Mac Shot   Reset
+                              GUI      ▽      Space       Enter     ▽     Backspace
+```
+
+`Mac Shot` sends Command+Shift+4; `Print` sends Print Screen. The media and
+brightness bindings use standard HID consumer controls. Bootloader and reset
+occupy the guarded bottom outer positions. RGB controls use positions available
+on this wired board in place of TOTEM's Bluetooth profile and output controls.
 
 The encoder map preserves left volume and right previous/next track, with
 transparent bindings on the other layers. Encoder presses preserve `A` and `B`
 on every layer, as recorded in the export.
 
-Tap-hold timing is 200 ms; one-shot modifiers expire after 5 seconds and lock
-after five taps. These values come from the Vial settings. The export's 175 ms
-value is its disabled Auto Shift timeout, not the tap-hold term.
+Tap-hold timing remains 200 ms; one-shot modifiers expire after 5 seconds and
+lock after five taps. These values come from the Vial settings. The export's
+175 ms value is its disabled Auto Shift timeout, not the tap-hold term.
 
-Symbol keycodes preserve the export's HID usages and modifiers. The host's
-keyboard layout determines the characters they produce.
+The host's keyboard layout determines the characters produced by symbol
+keycodes.
 
 ## Add a keyboard or update dependencies
 
